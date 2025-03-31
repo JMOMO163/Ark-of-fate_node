@@ -3,18 +3,18 @@ const {
   getUsers,
   getUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  updateUserRole
 } = require('../controllers/userController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-router.use(protect);
-router.use(authorize('admin'));
+// 所有用户管理相关的路由都需要管理员权限
+router.use(protect, authorize('admin'));
 
-router.route('/')
-  .get(getUsers);
-
+router.get('/all', getUsers);
+router.put('/:id/role', updateUserRole);
 router.route('/:id')
   .get(getUser)
   .put(updateUser)

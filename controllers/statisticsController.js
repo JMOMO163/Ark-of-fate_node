@@ -2,6 +2,7 @@ const Character = require('../models/characterModel');
 const GameAccount = require('../models/gameAccountModel');
 const DungeonRecord = require('../models/dungeonRecordModel');
 const DungeonHistory = require('../models/dungeonHistoryModel');
+const Dungeon = require('../models/dungeonModel');
 
 // @desc    获取统计数据
 // @route   GET /api/statistics
@@ -43,7 +44,7 @@ exports.getStatistics = async (req, res) => {
     // 获取所有副本记录 - 受所有筛选条件影响
     const Model = req.query.recordType === 'history' ? DungeonHistory : DungeonRecord;
     const records = await Model.find(query)
-      .populate('dungeon.id', 'name boundGoldIncome tradeableGoldIncome');
+      .populate('dungeon.id', 'name');
 
     // 计算总收益
     let totalIncome = 0;
@@ -58,14 +59,14 @@ exports.getStatistics = async (req, res) => {
 
     records.forEach(record => {
       if (record.hasReward && record.isCompleted) {
-        const dungeonData = record.dungeon.id;
-        totalIncome += dungeonData.boundGoldIncome + dungeonData.tradeableGoldIncome;
-        boundIncome += dungeonData.boundGoldIncome;
-        tradeableIncome += dungeonData.tradeableGoldIncome;
+        const { bound = 0, tradeable = 0, total = 0 } = record.rewards || {};
+        totalIncome += total;
+        boundIncome += bound;
+        tradeableIncome += tradeable;
         recordCount++;
 
         // 统计副本使用次数
-        const dungeonName = dungeonData.name;
+        const dungeonName = record.dungeon.id.name;
         dungeonUsage[dungeonName] = (dungeonUsage[dungeonName] || 0) + 1;
 
         // 统计副本收益
@@ -75,8 +76,8 @@ exports.getStatistics = async (req, res) => {
             tradeable: 0
           };
         }
-        dungeonIncome[dungeonName].bound += dungeonData.boundGoldIncome;
-        dungeonIncome[dungeonName].tradeable += dungeonData.tradeableGoldIncome;
+        dungeonIncome[dungeonName].bound += bound;
+        dungeonIncome[dungeonName].tradeable += tradeable;
       }
     });
 
@@ -122,6 +123,26 @@ exports.getStatistics = async (req, res) => {
     }, '获取统计数据成功');
   } catch (err) {
     console.error('[STATISTICS] 获取统计数据失败:', err);
+    res.error(err.message, 201);
+  }
+};
+
+// @desc    获取所有副本
+// @route   GET /api/statistics/dungeons/all
+// @access  Private
+exports.getAllDungeons = async (req, res) => {
+  try {
+    console.log('[STATISTICS] 获取所有副本');
+    
+    const dungeons = await Dungeon.find()
+      .select('name boundGoldIncome tradeableGoldIncome soloIncome')
+      .sort({ name: 1 });
+    
+    res.success({
+      dungeons
+    }, '获取副本列表成功');
+  } catch (err) {
+    console.error('[STATISTICS] 获取副本列表失败:', err);
     res.error(err.message, 201);
   }
 }; 

@@ -1,26 +1,21 @@
 const mongoose = require('mongoose');
 
 const dungeonHistorySchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+  character: {
+    id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Character',
+      required: true
+    },
+    name: {
+      type: String,
+      required: true
+    }
   },
   gameAccount: {
     id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'GameAccount',
-      required: true
-    },
-    accountNumber: {
-      type: String,
-      required: true
-    }
-  },
-  character: {
-    id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Character',
       required: true
     },
     name: {
@@ -39,21 +34,47 @@ const dungeonHistorySchema = new mongoose.Schema({
       required: true
     }
   },
+  isSolo: {
+    type: Boolean,
+    required: true,
+    default: false
+  },
   isCompleted: {
     type: Boolean,
-    default: true
+    required: true,
+    default: false
   },
   hasReward: {
     type: Boolean,
-    default: true
+    required: true,
+    default: false
   },
-  resetDate: {
-    type: Date,
-    default: Date.now
+  rewards: {
+    bound: {
+      type: Number,
+      required: true
+    },
+    tradeable: {
+      type: Number,
+      required: true
+    },
+    total: {
+      type: Number,
+      required: true
+    }
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
   originalCreatedAt: {
     type: Date,
     required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 

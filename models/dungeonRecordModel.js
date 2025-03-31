@@ -61,17 +61,17 @@ const dungeonRecordSchema = new mongoose.Schema({
     default: false
   },
   rewards: {
-    total: {
-      type: Number,
-      default: 0
-    },
     bound: {
       type: Number,
-      default: 0
+      required: true
     },
     tradeable: {
       type: Number,
-      default: 0
+      required: true
+    },
+    total: {
+      type: Number,
+      required: true
     }
   },
   user: {

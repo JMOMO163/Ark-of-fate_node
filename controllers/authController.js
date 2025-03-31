@@ -227,81 +227,72 @@ exports.updateProfile = async (req, res) => {
 // @access  Private
 exports.weeklyReset = async (req, res) => {
   try {
-    console.log(`[WEEKLY RESET] 开始周重置: ${req.user.id}`);
+    console.log(`[WEEKLY RESET] 用户 ${req.user._id} 开始周重置`);
     
-    // 获取所有当前用户的副本记录
-    const records = await DungeonRecord.find({ user: req.user.id })
-      .populate('gameAccount.id', 'accountNumber')
-      .populate('character.id', 'name')
-      .populate('dungeon.id', 'name');
+    // 获取所有当前记录
+    const currentRecords = await DungeonRecord.find({ 
+      user: req.user._id 
+    }).populate({
+      path: 'gameAccount.id',
+      select: 'accountNumber'
+    })
+    .populate('character.id', 'name')
+    .populate('dungeon.id', 'name');
     
-    // 将记录转移到历史表
-    const historyRecords = records.map(record => ({
-      user: record.user,
-      gameAccount: {
-        id: record.gameAccount.id._id,
-        accountNumber: record.gameAccount.id.accountNumber
-      },
-      character: {
-        id: record.character.id._id,
-        name: record.character.id.name
-      },
-      dungeon: {
-        id: record.dungeon.id._id,
-        name: record.dungeon.id.name
-      },
-      isCompleted: record.isCompleted,
-      hasReward: record.hasReward,
-      originalCreatedAt: record.createdAt
-    }));
-    
-    // 验证所有记录是否都有必要的字段
-    const validationErrors = historyRecords.reduce((errors, record, index) => {
-      if (!record.gameAccount.accountNumber) {
-        errors.push(`记录 ${index + 1} 缺少游戏账号信息`);
-      }
-      if (!record.character.name) {
-        errors.push(`记录 ${index + 1} 缺少角色名称`);
-      }
-      if (!record.dungeon.name) {
-        errors.push(`记录 ${index + 1} 缺少副本名称`);
-      }
-      return errors;
-    }, []);
-    
-    if (validationErrors.length > 0) {
-      console.error('[WEEKLY RESET] 数据验证失败:', validationErrors);
-      return res.error(`数据验证失败: ${validationErrors.join(', ')}`, 201);
-    }
-    
-    if (historyRecords.length > 0) {
-      // 先尝试插入历史记录
-      console.log('[WEEKLY RESET] 开始插入历史记录...');
+    if (currentRecords.length > 0) {
+      // 创建历史记录
+      const historyRecords = currentRecords.map(record => {
+        const recordObj = record.toObject();
+        return {
+          character: {
+            id: recordObj.character.id._id,
+            name: recordObj.character.id.name
+          },
+          gameAccount: {
+            id: recordObj.gameAccount.id._id,
+            name: recordObj.gameAccount.id.accountNumber
+          },
+          dungeon: {
+            id: recordObj.dungeon.id._id,
+            name: recordObj.dungeon.id.name
+          },
+          isSolo: recordObj.isSolo,
+          isCompleted: recordObj.isCompleted,
+          hasReward: recordObj.hasReward,
+          rewards: recordObj.rewards,
+          user: recordObj.user,
+          originalCreatedAt: recordObj.createdAt,
+          createdAt: new Date()
+        };
+      });
+
+      // 批量插入历史记录
       const insertedRecords = await DungeonHistory.insertMany(historyRecords);
       
-      if (insertedRecords.length === historyRecords.length) {
-        // 只有在历史记录全部插入成功后才删除原记录
-        console.log('[WEEKLY RESET] 历史记录插入成功，开始删除原记录...');
-        await DungeonRecord.deleteMany({ user: req.user.id });
-        console.log(`[WEEKLY RESET] 重置成功: ${historyRecords.length} 条记录已转移`);
-        res.success({ count: historyRecords.length }, '周重置成功');
-      } else {
-        // 如果插入的记录数量不匹配，说明有部分记录未能成功插入
+      // 验证是否所有记录都成功插入
+      if (insertedRecords.length !== currentRecords.length) {
         console.error('[WEEKLY RESET] 历史记录插入不完整');
-        // 删除已插入的历史记录，回滚操作
+        // 如果插入不完整，删除已插入的记录
         if (insertedRecords.length > 0) {
           const insertedIds = insertedRecords.map(record => record._id);
           await DungeonHistory.deleteMany({ _id: { $in: insertedIds } });
         }
-        throw new Error('历史记录插入不完整，操作已回滚');
+        throw new Error('历史记录转移不完整');
       }
+      
+      // 只有在历史记录全部插入成功后才删除原记录
+      console.log('[WEEKLY RESET] 历史记录插入成功，开始删除原记录...');
+      await DungeonRecord.deleteMany({ user: req.user._id });
+      
+      console.log(`[WEEKLY RESET] 用户 ${req.user._id} 周重置成功，${currentRecords.length} 条记录已归档`);
+      res.success({ count: currentRecords.length }, '周重置成功');
     } else {
-      console.log('[WEEKLY RESET] 没有需要重置的记录');
-      res.success({ count: 0 }, '没有需要重置的记录');
+      console.log(`[WEEKLY RESET] 用户 ${req.user._id} 无记录需要重置`);
+      res.success(null, '无记录需要重置');
     }
   } catch (err) {
     console.error('[WEEKLY RESET] 周重置失败:', err);
-    res.error(err.message, 201);
+    res.error(err.message || '周重置失败', 201);
   }
 };
 

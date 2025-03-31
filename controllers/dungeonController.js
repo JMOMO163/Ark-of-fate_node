@@ -11,8 +11,8 @@ exports.getDungeons = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // 构建查询条件
-    const query = { user: req.user.id };
+    // 移除用户ID限制
+    const query = {};
 
     // 获取总记录数
     const total = await Dungeon.countDocuments(query);
@@ -48,12 +48,6 @@ exports.getDungeon = async (req, res) => {
       return res.error('未找到副本', 201);
     }
 
-    // 确保用户只能访问自己的副本或公共副本
-    if (dungeon.user.toString() !== req.user.id && !dungeon.isPublic && req.user.role !== 'admin') {
-      console.error(`[DUNGEONS] 权限不足: ${req.user.id} 尝试访问 ${dungeon.user} 的副本`);
-      return res.error('无权访问此副本', 201);
-    }
-
     res.success(dungeon, '获取副本成功');
   } catch (err) {
     console.error('[DUNGEONS] 获取副本失败:', err);
@@ -63,9 +57,14 @@ exports.getDungeon = async (req, res) => {
 
 // @desc    创建副本
 // @route   POST /api/dungeons
-// @access  Private
+// @access  Private/Admin
 exports.createDungeon = async (req, res) => {
   try {
+    // 只允许管理员创建副本
+    if (req.user.role !== 'admin') {
+      return res.error('只有管理员可以创建副本', 201);
+    }
+
     console.log('[DUNGEONS] 创建副本:', req.body);
     const { 
       name, 
@@ -96,7 +95,6 @@ exports.createDungeon = async (req, res) => {
       refreshInterval,
       hasSoloMode,
       soloIncome: hasSoloMode ? soloIncome : 0,
-      user: req.user.id
     });
 
     console.log(`[DUNGEONS] 副本创建成功: ${dungeon._id}`);
@@ -109,21 +107,20 @@ exports.createDungeon = async (req, res) => {
 
 // @desc    更新副本
 // @route   PUT /api/dungeons/:id
-// @access  Private
+// @access  Private/Admin
 exports.updateDungeon = async (req, res) => {
   try {
+    // 只允许管理员更新副本
+    if (req.user.role !== 'admin') {
+      return res.error('只有管理员可以更新副本', 201);
+    }
+
     console.log(`[DUNGEONS] 更新副本: ${req.params.id}`, req.body);
     let dungeon = await Dungeon.findById(req.params.id);
 
     if (!dungeon) {
       console.error(`[DUNGEONS] 副本不存在: ${req.params.id}`);
       return res.error('未找到副本', 201);
-    }
-
-    // 确保用户只能更新自己的副本
-    if (dungeon.user.toString() !== req.user.id && req.user.role !== 'admin') {
-      console.error(`[DUNGEONS] 权限不足: ${req.user.id} 尝试更新 ${dungeon.user} 的副本`);
-      return res.error('无权更新此副本', 201);
     }
 
     // 验证单人模式数据
@@ -153,21 +150,20 @@ exports.updateDungeon = async (req, res) => {
 
 // @desc    删除副本
 // @route   DELETE /api/dungeons/:id
-// @access  Private
+// @access  Private/Admin
 exports.deleteDungeon = async (req, res) => {
   try {
+    // 只允许管理员删除副本
+    if (req.user.role !== 'admin') {
+      return res.error('只有管理员可以删除副本', 201);
+    }
+
     console.log(`[DUNGEONS] 删除副本: ${req.params.id}`);
     const dungeon = await Dungeon.findById(req.params.id);
 
     if (!dungeon) {
       console.error(`[DUNGEONS] 副本不存在: ${req.params.id}`);
       return res.error('未找到副本', 201);
-    }
-
-    // 确保用户只能删除自己的副本
-    if (dungeon.user.toString() !== req.user.id && req.user.role !== 'admin') {
-      console.error(`[DUNGEONS] 权限不足: ${req.user.id} 尝试删除 ${dungeon.user} 的副本`);
-      return res.error('无权删除此副本', 201);
     }
 
     await Dungeon.findByIdAndDelete(req.params.id);
