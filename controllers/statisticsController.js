@@ -135,8 +135,8 @@ exports.getAllDungeons = async (req, res) => {
     console.log('[STATISTICS] 获取所有副本');
     
     const dungeons = await Dungeon.find()
-      .select('name boundGoldIncome tradeableGoldIncome soloIncome')
-      .sort({ name: 1 });
+      .select('name boundGoldIncome tradeableGoldIncome soloIncome itemLevel')
+      .sort({ itemLevel: -1 });
     
     res.success({
       dungeons

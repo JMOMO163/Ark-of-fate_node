@@ -182,13 +182,8 @@ exports.deleteDungeon = async (req, res) => {
 exports.getAllDungeons = async (req, res) => {
   try {
     console.log('[DUNGEONS] 获取所有副本列表');
-    
-    // 构建查询条件
-    const query = { user: req.user.id };
-
     // 获取所有副本数据，按装等降序排序
-    const dungeons = await Dungeon.find(query).sort({ itemLevel: -1 });
-
+    const dungeons = await Dungeon.find().sort({ itemLevel: -1 });
     res.success({
       dungeons
     }, '获取所有副本列表成功');
