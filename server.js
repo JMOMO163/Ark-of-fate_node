@@ -11,14 +11,29 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet());
 
 // 跨域配置
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL
-    : true, // 开发环境允许所有来源
+const corsOptions = {
+  origin: function(origin, callback) {
+    // 允许的前端源列表
+    const allowedOrigins = [
+      'http://localhost:3000',   // 开发环境
+      'http://127.0.0.1:3000',   // 开发环境的另一种写法
+      process.env.FRONTEND_URL,  // 生产环境
+      'https://ark-of-fate-web.vercel.app'
+    ];
+    
+    // 允许没有来源的请求（如移动应用）或在允许列表中的来源
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy violation'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+};
+
+app.use(cors(corsOptions));
 
 // 限制请求频率
 if (process.env.NODE_ENV === 'production') {

@@ -21,14 +21,6 @@ const statisticsRoutes = require('./routes/statisticsRoutes');
 
 const app = express();
 
-// CORS 配置
-app.use(cors({
-  origin: 'http://localhost:3000', // 前端开发服务器地址
-  credentials: true, // 允许携带凭证
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
