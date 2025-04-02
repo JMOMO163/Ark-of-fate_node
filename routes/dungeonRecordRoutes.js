@@ -3,7 +3,9 @@ const {
   getDungeonRecords,
   createDungeonRecord,
   getCompletedDungeons,
-  getDungeonRecordStats
+  getDungeonRecordStats,
+  updateDungeonRecord, 
+  deleteDungeonRecord
 } = require('../controllers/dungeonRecordController');
 
 const router = express.Router();
@@ -25,5 +27,11 @@ router
 router
   .route('/stats/:characterId')
   .get(protect, getDungeonRecordStats);
+
+// 添加更新和删除的路由
+router
+  .route('/record/:id')
+  .put(protect, updateDungeonRecord)
+  .delete(protect, deleteDungeonRecord);
 
 module.exports = router; 
