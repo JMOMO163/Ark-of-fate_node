@@ -21,7 +21,7 @@ exports.getStatistics = async (req, res) => {
     
     // 添加日期范围筛选
     if (req.query.startDate || req.query.endDate) {
-      query.createdAt = {};
+      query[req.query.recordType === 'history' ? 'originalCreatedAt' : 'createdAt'] = {};
       if (req.query.startDate) {
         query[req.query.recordType === 'history' ? 'originalCreatedAt' : 'createdAt'].$gte = new Date(req.query.startDate);
       }
@@ -29,7 +29,6 @@ exports.getStatistics = async (req, res) => {
         query[req.query.recordType === 'history' ? 'originalCreatedAt' : 'createdAt'].$lte = new Date(req.query.endDate);
       }
     }
-
     // 获取账号总数 - 不受筛选条件影响
     const accountCount = await GameAccount.countDocuments({ user: req.user.id });
 
